@@ -1,4 +1,4 @@
-# ATA Order Search
+# Order Dashboard
 
 Responsive React + TypeScript implementation of the ATA-IT frontend assignment.
 
