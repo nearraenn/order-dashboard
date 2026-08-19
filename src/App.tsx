@@ -50,8 +50,8 @@ function Details({ order }: { order: Order }) {
 
 function App() {
   const [startDate, setStartDate] = useState('2022-12-01')
-  const [endDate, setEndDate] = useState('2023-01-31')
-  const [range, setRange] = useState({ start: '2022-12-01', end: '2023-01-31' })
+  const [endDate, setEndDate] = useState('2026-01-31')
+  const [range, setRange] = useState({ start: '2022-12-01', end: '2026-01-31' })
   const [expandedId, setExpandedId] = useState<string | null>('order-1')
   const [error, setError] = useState('')
 
