@@ -1,6 +1,6 @@
 # Order Dashboard
 
-Responsive React + TypeScript implementation of the ATA-IT frontend assignment.
+Responsive React + TypeScript implementation.
 
 ## Run locally
 
