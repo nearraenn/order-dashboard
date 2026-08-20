@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react'
-import { orders } from './data/orders'
-import type { Order } from './types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { searchOrders } from './api/ordersApi'
+import type { Order, OrderSearchRequest, OrderSearchResponse } from './types'
+
+const DEFAULT_SEARCH: OrderSearchRequest = {
+  period: 'Transmission',
+  status: 'Waiting',
+  startDate: '2022-12-01',
+  endDate: '2026-01-31',
+}
 
 const dateFormatter = new Intl.DateTimeFormat('en-CA', {
   year: 'numeric', month: '2-digit', day: '2-digit',
@@ -49,32 +56,59 @@ function Details({ order }: { order: Order }) {
 }
 
 function App() {
-  const [startDate, setStartDate] = useState('2022-12-01')
-  const [endDate, setEndDate] = useState('2026-01-31')
-  const [range, setRange] = useState({ start: '2022-12-01', end: '2026-01-31' })
+  const [startDate, setStartDate] = useState(DEFAULT_SEARCH.startDate)
+  const [endDate, setEndDate] = useState(DEFAULT_SEARCH.endDate)
   const [expandedId, setExpandedId] = useState<string | null>('order-1')
-  const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
+  const [requestError, setRequestError] = useState('')
+  const [result, setResult] = useState<OrderSearchResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const activeRequest = useRef<AbortController | null>(null)
 
-  const filteredOrders = useMemo(() => orders.filter((order) => {
-    const day = order.date.slice(0, 10)
-    return day >= range.start && day <= range.end
-  }), [range])
+  const loadOrders = useCallback(async (request: OrderSearchRequest) => {
+    activeRequest.current?.abort()
+    const controller = new AbortController()
+    activeRequest.current = controller
+    setIsLoading(true)
+    setRequestError('')
+
+    try {
+      const response = await searchOrders(request, controller.signal)
+      if (!controller.signal.aborted) setResult(response)
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setRequestError(error instanceof Error ? error.message : 'Unable to load orders. Please try again.')
+      }
+    } finally {
+      if (activeRequest.current === controller) setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadOrders(DEFAULT_SEARCH), 0)
+    return () => {
+      window.clearTimeout(initialLoad)
+      activeRequest.current?.abort()
+    }
+  }, [loadOrders])
 
   function search(event: React.FormEvent) {
     event.preventDefault()
-    if (!startDate || !endDate) return setError('Please select both a starting and ending date.')
-    if (startDate > endDate) return setError('Starting date must be before ending date.')
-    setError('')
-    setRange({ start: startDate, end: endDate })
+    if (!startDate || !endDate) return setFormError('Please select both a starting and ending date.')
+    if (startDate > endDate) return setFormError('Starting date must be before ending date.')
+    setFormError('')
     setExpandedId(null)
+    void loadOrders({ ...DEFAULT_SEARCH, startDate, endDate })
   }
+
+  const displayedOrders = result?.items ?? []
 
   return (
     <main>
       <section className="panel" aria-labelledby="page-title">
         <div className="headingRow">
           <div><p className="eyebrow">Orders</p><h1 id="page-title">Search</h1></div>
-          <p className="resultCount" aria-live="polite"><strong>{filteredOrders.length}</strong> results</p>
+          <p className="resultCount" aria-live="polite"><strong>{result?.total ?? 0}</strong> results</p>
         </div>
 
         <form className="filters" onSubmit={search}>
@@ -82,11 +116,12 @@ function App() {
           <label><span>Status</span><select aria-label="Status" disabled><option>Waiting</option></select></label>
           <label><span>From</span><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></label>
           <label><span>To</span><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></label>
-          <button className="searchButton" type="submit"><span aria-hidden="true">⌕</span> Search</button>
+          <button className="searchButton" type="submit" disabled={isLoading}><span aria-hidden="true">⌕</span> {isLoading ? 'Searching…' : 'Search'}</button>
         </form>
-        {error && <p className="error" role="alert">{error}</p>}
+        {formError && <p className="error" role="alert">{formError}</p>}
+        {requestError && <div className="error requestError" role="alert"><span>{requestError}</span><button type="button" onClick={() => void loadOrders({ ...DEFAULT_SEARCH, startDate, endDate })}>Retry</button></div>}
 
-        <div className="tableWrap">
+        <div className="tableWrap" aria-busy={isLoading}>
           <table>
             <thead><tr>
               <th className="toggleCell"><span className="srOnly">Expand</span></th>
@@ -97,7 +132,7 @@ function App() {
               <th className="optional">Ext. Ref.</th><th className="optional"></th>
             </tr></thead>
             <tbody>
-              {filteredOrders.map((order) => {
+              {!isLoading && !requestError && displayedOrders.map((order) => {
                 const expanded = order.id === expandedId
                 return [
                   <tr className={expanded ? 'activeRow' : ''} key={order.id}>
@@ -117,7 +152,8 @@ function App() {
               })}
             </tbody>
           </table>
-          {filteredOrders.length === 0 && <div className="empty"><span aria-hidden="true">⌕</span><h2>No orders found</h2><p>Try choosing a wider date range.</p></div>}
+          {isLoading && <div className="empty loading" role="status"><span className="spinner" aria-hidden="true" /><h2>Loading orders</h2><p>Please wait while we retrieve the latest results.</p></div>}
+          {!isLoading && !requestError && displayedOrders.length === 0 && <div className="empty"><span aria-hidden="true">⌕</span><h2>No orders found</h2><p>Try choosing a wider date range.</p></div>}
         </div>
       </section>
     </main>
