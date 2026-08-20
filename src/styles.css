@@ -49,7 +49,9 @@ tbody tr:not(.detailRow):hover { background: #f7fbfe; }.activeRow { background: 
   .filters { grid-template-columns: 1fr 1fr; padding: 16px 18px 20px; }.filters label { grid-template-columns: 1fr; gap: 5px; }.searchButton { grid-column: 1 / -1; width: 100%; }
   .tableWrap { padding: 0 10px 20px; overflow: visible; } table { min-width: 0; table-layout: fixed; } .optional, .toggleCell { display: none; }
   th, td { width: 25%; padding: 12px 6px; overflow: hidden; text-overflow: ellipsis; }.accountLink { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .detailRow { display: none; }
+  /* Toggle column is hidden here, so the account button is the only disclosure control. */
+  .detailRow > td { overflow: visible; }.details { padding: 14px 12px 18px; }
+  .detailsTop { flex-wrap: wrap; gap: 12px; }.facts { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; }
 }
 
 @media (max-width: 440px) {
