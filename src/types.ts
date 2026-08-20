@@ -1,5 +1,18 @@
 export type OrderStatus = 'Waiting'
 export type Operation = 'Buy' | 'Sell'
+export type OrderPeriod = 'Transmission'
+
+export interface OrderSearchRequest {
+  period: OrderPeriod
+  status: OrderStatus
+  startDate: string
+  endDate: string
+}
+
+export interface OrderSearchResponse {
+  items: Order[]
+  total: number
+}
 
 export interface Order {
   id: string
