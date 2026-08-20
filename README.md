@@ -34,8 +34,11 @@ Search form
 - `src/data/orders.ts` contains the frontend test dataset.
 - `src/api/ordersApi.ts` acts as the backend boundary. It simulates network latency, applies the
   date and status filters, and returns `{ items, total }` asynchronously.
-- `src/App.tsx` owns form validation and request UI states, but does not know how orders are stored
-  or filtered.
+- `src/App.tsx` coordinates request lifecycle and page-level state, but does not know how orders are
+  stored, filtered, or rendered.
+- `src/components` separates the search form, table, row, and details into focused presentation
+  boundaries. `SearchFilters` owns its draft values and validation.
+- `src/utils/formatters.ts` centralizes date and number presentation rules.
 
 The API accepts an `AbortSignal`. Starting a newer search cancels the previous request so an older,
 slower response cannot replace the latest results. The UI explicitly handles loading, request error,
